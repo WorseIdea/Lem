@@ -153,6 +153,12 @@ class Interpreter:
 					if (val):
 						self.jump(addr)
 				
+				case 0x28: # swap
+					v1 = self.pop()
+					v2 = self.pop()
+					self.push(v1)
+					self.push(v2)
+				
 				case 0xF0: # halt
 					break
 				
@@ -163,7 +169,14 @@ class Interpreter:
 					raise BaseException(f"Bad opcode at {self.ip}") 
 
 def main():
-	i = Interpreter(b"\x00" * 8 + b"\x02Hello, world!\x00" + b"\xff\xf0")
+	i = Interpreter(b"\x00" * 8 
+		+ b"\x02Hello, world!\x00" # push "Hello, world!"
+		+ b"\xff" # print
+		+ b"\x01\x00\x00\x00\x00" # push 0
+		+ b"\x01\x01\x00\x00\x00" # push 1
+		+ b"\x27" # if
+		+ b"\xf0" # halt
+	)
 	i.run()
 
 if (__name__ == "__main__"):
