@@ -128,7 +128,7 @@ class Interpreter:
 			print(hex(self.tell())[2:], "|", hex(opcode)[2:])
 			
 			match (opcode):
-				case 0: # nop
+				case instr.nop: # nop
 					pass
 				
 				case 0x01: # push <int>
