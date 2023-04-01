@@ -1,6 +1,26 @@
 import struct
 import io
 import os
+import pathlib as path
+import sys
+from enum import Enum
+
+class instr(Enum):
+	nop = 0x00
+	push_int = 0x01
+	push_str = 0x02
+	push_float = 0x03
+	push_nil = 0x04
+	pop = 0x20
+	add = 0x21
+	sub = 0x22
+	mul = 0x23
+	div = 0x24
+	store = 0x25
+	load = 0x26
+	jump = 0x27
+	print = 0xA0
+	halt = 0xFF
 
 class Interpreter:
 	def __init__(self, data):
@@ -91,10 +111,6 @@ class Interpreter:
 		# Read base code pos
 		self.base_pos = self.tell()
 		
-		# Patch symbols to use base_pos
-		for k in self.symbols:
-			self.symbols[k] = self.symbols[k] + self.base_pos
-		
 		# Jump to end
 		self.jump(initial_ip)
 	
@@ -108,6 +124,8 @@ class Interpreter:
 		
 		while (True):
 			opcode = self.readUInt8()
+			
+			print(hex(self.tell())[2:], "|", hex(opcode)[2:])
 			
 			match (opcode):
 				case 0: # nop
@@ -129,16 +147,24 @@ class Interpreter:
 					self.pop()
 				
 				case 0x21: # add
-					self.push(self.pop() + self.pop())
+					b = self.pop()
+					a = self.pop()
+					self.push(a + b)
 				
 				case 0x22: # sub
-					self.push(self.pop() - self.pop())
+					b = self.pop()
+					a = self.pop()
+					self.push(a - b)
 				
 				case 0x23: # mul
-					self.push(self.pop() * self.pop())
+					b = self.pop()
+					a = self.pop()
+					self.push(a * b)
 				
 				case 0x24: # div
-					self.push(self.pop() / self.pop())
+					b = self.pop()
+					a = self.pop()
+					self.push(a / b)
 				
 				case 0x25: # str
 					self.call_stack[-1][self.pop()] = self.pop()
@@ -146,38 +172,31 @@ class Interpreter:
 				case 0x26: # ldr
 					self.push(self.call_stack[-1][self.pop()])
 				
-				case 0x27: # if
-					val = self.pop()
-					addr = self.pop()
-					
-					if (val):
-						self.jump(addr)
+				case 0x27: # jmp
+					self.jump(self.pop())
 				
-				case 0x28: # swap
-					v1 = self.pop()
-					v2 = self.pop()
-					self.push(v1)
-					self.push(v2)
-				
-				case 0xF0: # halt
-					break
-				
-				case 0xFF: # print
+				case 0xA0: # print
 					print(self.pop())
 				
+				case 0xFF: # halt
+					break
+				
 				case _:
-					raise BaseException(f"Bad opcode at {self.ip}") 
+					raise BaseException(f"Bad opcode at {self.ip}")
+	
+	def call(self, symbol = "main"):
+		ip = self.symbols.get(symbol, None)
+		
+		if (ip == None):
+			return
+		
+		print(f"\t{symbol} {hex(ip)[2:]}")
+		
+		self.run(ip)
 
 def main():
-	i = Interpreter(b"\x00" * 8 
-		+ b"\x02Hello, world!\x00" # push "Hello, world!"
-		+ b"\xff" # print
-		+ b"\x01\x00\x00\x00\x00" # push 0
-		+ b"\x01\x01\x00\x00\x00" # push 1
-		+ b"\x27" # if
-		+ b"\xf0" # halt
-	)
-	i.run()
+	i = Interpreter(path.Path(sys.argv[1]).read_bytes())
+	i.call(sys.argv[2] if len(sys.argv) > 2 else "main")
 
 if (__name__ == "__main__"):
 	main()
