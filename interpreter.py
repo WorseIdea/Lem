@@ -128,7 +128,7 @@ class Interpreter:
 			print(hex(self.tell())[2:], "|", hex(opcode)[2:])
 			
 			match (opcode):
-				case instr.nop: # nop
+				case 0x00: # nop
 					pass
 				
 				case 0x01: # push <int>
@@ -167,13 +167,23 @@ class Interpreter:
 					self.push(a / b)
 				
 				case 0x25: # str
-					self.call_stack[-1][self.pop()] = self.pop()
+					value = self.pop()
+					key = self.pop()
+					
+					self.call_stack[-1][key] = value
 				
 				case 0x26: # ldr
 					self.push(self.call_stack[-1][self.pop()])
 				
 				case 0x27: # jmp
 					self.jump(self.pop())
+				
+				case 0x28: # jz
+					addr = self.pop()
+					val = self.pop()
+					
+					if (val == 0):
+						self.jump(addr)
 				
 				case 0xA0: # print
 					print(self.pop())
